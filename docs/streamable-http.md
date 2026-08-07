@@ -7,38 +7,25 @@ Streamable HTTP collapses the old two-endpoint design into **one endpoint** (con
 `/mcp`) and makes SSE an *optional, per-request* upgrade instead of a permanent connection:
 
 ```
-   Client                                                              Server
-   ──────                                                              ──────
+CLIENT                         SERVER
+------                         ------
 
-   ── Initialize (no Mcp-Session-Id) ────────────────────────────────────────────
-   POST /mcp  (JSON-RPC: initialize)                                       ──▶
-                                                                  createMcpServer()
-                                                               + StreamableHTTPTrans
-                                                                  + MemoryEventStore
-◀── 200 OK  +  Mcp-Session-Id: <id>
+POST /mcp -------------------> createMcpServer()
+initialize                    create transport + event store
+200 OK + Mcp-Session-Id <----- session id
 
-   ── Subsequent requests (Mcp-Session-Id: <id>) ──────────────────────────────
-   POST /mcp  (JSON-RPC: tools/call, resources/read, …)                    ──▶
-       Accept: application/json, text/event-stream
+POST /mcp -------------------> handle request
+Mcp-Session-Id: <id>          return JSON or an SSE response
+response <--------------------
 
-                                       ┌── 200 application/json
-◀──                                       │── OR
-                                       └── 200 text/event-stream (frames … end)
+GET /mcp --------------------> optional standalone SSE stream
+event: message <-------------- server-initiated notification
+event: message <-------------- resources/updated, logs, etc.
 
-   ── Optional standalone SSE (server-initiated push) ────────────────────────
-   GET /mcp  (Mcp-Session-Id: <id>)                                      ──▶
-   event: message  data: {…}   (resources/updated, logs, sampling, …)
-◀── event: message  data: {…}
-   …
+DELETE /mcp -----------------> close session and dispose resources
 
-   ── Teardown ──────────────────────────────────────────────────────────────
-   DELETE /mcp  (Mcp-Session-Id: <id>)                                     ──▶
-                                                                              onclose → dispose
-
-   ── Reconnect (resumability) ───────────────────────────────────────────────
-   GET or POST /mcp  (Last-Event-ID: <id>)                                 ──▶
-   event: message  data: {…}   (replayed from the event store)
-◀── event: message  data: {…}
+GET /mcp --------------------> Last-Event-ID: <id>
+missed events <--------------- replay from the event store
 ```
 
 ## The pieces

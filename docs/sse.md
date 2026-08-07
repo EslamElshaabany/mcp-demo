@@ -12,22 +12,18 @@ It uses **two HTTP endpoints** per server:
 2. **`POST /messages`** — the client sends JSON-RPC messages as ordinary HTTP POSTs.
 
 ```
-   Client                                                              Server
-   ──────                                                              ──────
+CLIENT                         SERVER
+------                         ------
 
-   GET /sse                                                            ──▶
-◀═════════════════════════════════════════════════════════════════════════════
-   event: endpoint  data: /messages?sessionId=X
-──── SSE stream stays open until the client disconnects ──────────────────────
+GET /sse --------------------> open long-lived SSE stream
+endpoint <-------------------- /messages?sessionId=X
 
-   POST /messages?sessionId=X  (JSON-RPC: initialize, tools/call, …)   ──▶
-◀── 202 Accepted  (empty body — the real response comes asynchronously)
-◀── event: message  data: {"jsonrpc":…,"id":…,"result":…}
-◀── event: message  data: {"jsonrpc":…,"method":"notifications/…"}
-   …
+POST /messages?sessionId=X ---> accept JSON-RPC request
+202 Accepted <---------------- empty HTTP response
+event: message <-------------- actual response on the SSE stream
+event: message <-------------- notifications and server requests
 
-   (when the client disconnects)
-──── server-side: onclose → session disposed ───────────────────────────────
+Client disconnects ------------> close stream and dispose session
 ```
 
 Key quirk: **POST responses carry no data** (just `202 Accepted`). Every server response — even

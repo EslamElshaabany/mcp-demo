@@ -6,14 +6,13 @@ capability family, and how the three transports share a single server factory.
 ## Big picture
 
 ```
-                                 createMcpServer()
-                                (src/server/index.ts)
-                                          │
-   ┌──────────────┬──────────────┬──────────┼──────────┬──────────────┐
-   │              │              │          │          │              │
-   ▼              ▼              ▼          ▼          ▼              ▼
-registerTools  registerResources  registerPrompts  registerBonus  registerSubscriptions
-(tools.ts)     (resources.ts)    (prompts.ts)     (bonus.ts)     (subscriptions.ts)
+createMcpServer()  (src/server/index.ts)
+|
++-- registerTools          src/server/tools.ts
++-- registerResources      src/server/resources.ts
++-- registerPrompts        src/server/prompts.ts
++-- registerBonus          src/server/bonus.ts
++-- registerSubscriptions  src/server/subscriptions.ts
 ```
 
 `createMcpServer()` is the single entry point for assembling a fully-featured
@@ -25,14 +24,9 @@ The same factory is used by **all three transports** (everything under
 `src/transports/`):
 
 ```
-       Streamable HTTP              legacy HTTP+SSE                  stdio
-   POST/GET/DELETE /mcp         GET /sse + POST /messages         stdin/stdout
-  (src/transports/http.ts)    (src/transports/http.ts + sse.ts)  (src/transports/stdio.ts)
-              │                            │                           │
-              └─────────────┬──────────────┴────────────┬──────────────┘
-                            ▼                            ▼
-                                  createMcpServer()
-                                  (src/server/index.ts)
+Streamable HTTP  --------\
+HTTP + SSE       ---------+--> createMcpServer()
+stdio            --------/     (src/server/index.ts)
 ```
 
 So transports are purely a wire-layer concern; the capability surface is
@@ -44,31 +38,19 @@ The server is **stateful**: each `initialize` gets its own `McpServer` +
 `StreamableHTTPTransport`, keyed by the `Mcp-Session-Id` header.
 
 ```
-   Client                                                       src/transports/http.ts
-   ──────                                                       ────────────────────────
-
-   POST /mcp (no Mcp-Session-Id)                                       ──▶
-                                                                        createMcpServer()
-                                                                     + new StreamableHTTPTransport(
-                                                                         sessionIdGenerator,
-                                                                         eventStore: MemoryEventStore,
-                                                                         onsessioninitialized
-                                                                           → sessions.set(id, …))
-                                                                        server.connect(transport)
-                                                                        transport.handleRequest(c) ──▶ client
-◀── 200 OK  +  Mcp-Session-Id: <id>
-
-   POST /mcp (Mcp-Session-Id: <id>)                                    ──▶
-                                                                        sessions.get(id)
-                                                                          → {transport, dispose}
-                                                                        transport.handleRequest(c) ──▶ client
-◀── (response)
-
-   DELETE /mcp (Mcp-Session-Id: <id>)                                  ──▶
-                                                                        transport.handleRequest(c)
-                                                                        (transport.onclose fires)
-                                                                          sessions.delete(id)
-                                                                          dispose()
+CLIENT              HTTP TRANSPORT             SESSION MAP
+------              ---------------            -----------
+  |                       |                         |
+  |-- POST /mcp --------->|                         |
+  |                       |-- create server ------->|
+  |                       |-- set(id, session) ----->|
+  |<-- 200 OK + id -------|                         |
+  |                       |                         |
+  |-- POST /mcp + id ---->|-- lookup session ------>|
+  |<-- response ----------|                         |
+  |                       |                         |
+  |-- DELETE /mcp + id -->|-- close + dispose       |
+  |                       |-- delete session ------>|
 ```
 
 Why per-session: subscriptions, log-level state, and the live-stats ticker all
@@ -97,19 +79,12 @@ no leaked timers.
 ## Client layout
 
 ```
-                                 client/demo.ts  (orchestrator)
-                                 ── pick transport → connect → run → teardown ──
-                                            │
-              ┌─────────────────────────────┼─────────────────────────────┐
-              │                             │                             │
-              ▼                             ▼                             ▼
-   client/walkthrough.ts             client/handlers.ts             client/helpers.ts
-   runWalkthrough()                  createDemoClient()             step / show /
-   one step per MCP                  fake sampling/elicitation/     toolText /
-   capability                        roots + notification log       resourceText
-              │
-              ▼
-        client/helpers.ts
+client/demo.ts  (orchestrator)
+|
++-- client/walkthrough.ts  runWalkthrough()
+|   +-- client/helpers.ts  formatting helpers
++-- client/handlers.ts     fake client capabilities
++-- client/helpers.ts      formatting helpers
 ```
 
 `handlers.ts` is where the demo's "no real LLM" trick lives: it registers

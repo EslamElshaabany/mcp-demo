@@ -8,24 +8,19 @@ newline-delimited [JSON-RPC 2.0](https://www.jsonrpc.org/) over the process's st
 - **stderr** — free for human-facing logs (never stdout, it would corrupt the protocol)
 
 ```
-   ┌────────────────────────┐                ┌────────────────────────────────┐
-   │                        │    stdin        │                                │
-   │                        │  ────────────▶  │  StdioServerTransport          │
-   │                        │  (JSON-RPC +    │           │                    │
-   │     Client process     │   "\n")         │           ▼                    │
-   │     (parent)           │  ◀────────────  │       MCP server               │
-   │                        │  stdout         │           │                    │
-   │                        │  (JSON-RPC +    │           ▼                    │
-   │                        │   "\n")         │       stderr                   │
-   │                        │  ◀─ ─ ─ ─ ─ ─   │       (logs only,              │
-   │                        │  stderr         │        not protocol)           │
-   └────────────────────────┘                 └────────────────────────────────┘
-                │                                          │
-                └───── client owns & spawns the server ───┘
+  +----------------+       stdin       +----------------------+
+  | Client process | ----------------> | StdioServerTransport |
+  | (parent)       | <---------------- | MCP server            |
+  +----------------+      stdout       +----------------------+
+          |                                  |
+          +---------- client spawns ---------+
+                         stderr
+                    (logs only; never
+                     part of JSON-RPC)
 ```
 
-Solid arrows = the JSON-RPC protocol wire. Dashed arrow = stderr, which is free
-for human logs and must NOT carry protocol messages.
+stdin and stdout carry the JSON-RPC protocol. stderr is free for human logs and
+must NOT carry protocol messages.
 
 ## Why MCP uses it
 
