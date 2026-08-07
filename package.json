@@ -1,0 +1,27 @@
+{
+  "name": "mcp-demo",
+  "version": "1.0.0",
+  "description": "Demo MCP server showcasing all Model Context Protocol capabilities, built with Hono + Bun",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot run src/transports/http.ts",
+    "start": "bun run src/transports/http.ts",
+    "stdio": "bun run src/transports/stdio.ts",
+    "client": "bun run client/demo.ts",
+    "client:sse": "bun run client/demo.ts sse",
+    "client:stdio": "bun run client/demo.ts stdio",
+    "inspect": "bunx @modelcontextprotocol/inspector",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/mcp": "^0.3.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "hono": "^4.13.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "bun-types": "^1.3.14",
+    "typescript": "^7.0.2"
+  }
+}
