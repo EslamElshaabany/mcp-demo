@@ -7,14 +7,21 @@ newline-delimited [JSON-RPC 2.0](https://www.jsonrpc.org/) over the process's st
 - **stdout** — server → client messages (responses, notifications, requests)
 - **stderr** — free for human-facing logs (never stdout, it would corrupt the protocol)
 
-```
-┌────────────── client process ──────────────┐      ┌──────────── server process ────────────┐
-│                                            │      │                                        │
-│  Client ── JSON-RPC + "\n" ────────────────┼──────▶ stdin  ──▶ StdioServerTransport ──▶ MCP │
-│        ◀── JSON-RPC + "\n" ────────────────┼────── stdout ◀──                    server     │
-│                                            │      │  stderr ──▶ logs (inherited/piped)      │
-└────────────────────────────────────────────┘      └─────────────────────────────────────────┘
-        client spawns and owns the server process
+```mermaid
+flowchart LR
+    subgraph Client["Client process"]
+        C[Client SDK<br/><i>StdioClientTransport</i>]
+    end
+    subgraph Server["Server process (spawned child)"]
+        T[StdioServerTransport]
+        M[MCP server]
+    end
+
+    C -->|"stdin<br/>JSON-RPC + LF"| T
+    T --> M
+    M --> T
+    T -->|"stdout<br/>JSON-RPC + LF"| C
+    M -.->|"stderr<br/>human logs only"| C
 ```
 
 ## Why MCP uses it

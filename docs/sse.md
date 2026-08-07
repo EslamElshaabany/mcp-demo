@@ -11,24 +11,28 @@ It uses **two HTTP endpoints** per server:
    stream (`text/event-stream`).
 2. **`POST /messages`** — the client sends JSON-RPC messages as ordinary HTTP POSTs.
 
-```
-┌──────── client ────────┐                 ┌──────── server ────────┐
-│                        │  GET /sse       │                        │
-│                        │ ───────────────▶│  open SSE stream       │
-│                        │ ◀═══════════════│  (stays open all       │
-│                        │  event: endpoint│   session long)        │
-│                        │  data: /messages│                        │
-│                        │    ?sessionId=X │                        │
-│                        │                 │                        │
-│  JSON-RPC request      │  POST /messages │  feed to MCP server    │
-│  (initialize, tools/…  │ ───────────────▶│                        │
-│   call, …)             │ ◀───────────────│  202 Accepted          │
-│                        │   (empty body!) │                        │
-│                        │                 │                        │
-│  the actual response   │ ◀═══════════════│  event: message        │
-│  arrives HERE, on the  │  event: message │  data: {"jsonrpc":…}   │
-│  SSE stream            │  data: {…}      │                        │
-└────────────────────────┘                 └────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    Note over C,S: Two endpoints — SSE stream stays open for the whole session
+
+    C->>S: GET /sse
+    activate S
+    S-->>C: event: endpoint  data: /messages?sessionId=X
+    Note over S: SSE stream stays open<br/>until the client disconnects
+
+    loop while session is open
+        C->>S: POST /messages?sessionId=X (JSON-RPC request)
+        S-->>C: 202 Accepted  (empty body)
+
+        alt server-to-client push
+            S-->>C: event: message  data: {...}
+        end
+    end
+
+    deactivate S
 ```
 
 Key quirk: **POST responses carry no data** (just `202 Accepted`). Every server response — even
