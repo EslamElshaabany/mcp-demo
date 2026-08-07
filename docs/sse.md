@@ -11,28 +11,23 @@ It uses **two HTTP endpoints** per server:
    stream (`text/event-stream`).
 2. **`POST /messages`** — the client sends JSON-RPC messages as ordinary HTTP POSTs.
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as Server
+```
+   Client                                                              Server
+   ──────                                                              ──────
 
-    Note over C,S: Two endpoints — SSE stream stays open for the whole session
+   GET /sse                                                            ──▶
+◀═════════════════════════════════════════════════════════════════════════════
+   event: endpoint  data: /messages?sessionId=X
+──── SSE stream stays open until the client disconnects ──────────────────────
 
-    C->>S: GET /sse
-    activate S
-    S-->>C: event: endpoint  data: /messages?sessionId=X
-    Note over S: SSE stream stays open<br/>until the client disconnects
+   POST /messages?sessionId=X  (JSON-RPC: initialize, tools/call, …)   ──▶
+◀── 202 Accepted  (empty body — the real response comes asynchronously)
+◀── event: message  data: {"jsonrpc":…,"id":…,"result":…}
+◀── event: message  data: {"jsonrpc":…,"method":"notifications/…"}
+   …
 
-    loop while session is open
-        C->>S: POST /messages?sessionId=X (JSON-RPC request)
-        S-->>C: 202 Accepted  (empty body)
-
-        alt server-to-client push
-            S-->>C: event: message  data: {...}
-        end
-    end
-
-    deactivate S
+   (when the client disconnects)
+──── server-side: onclose → session disposed ───────────────────────────────
 ```
 
 Key quirk: **POST responses carry no data** (just `202 Accepted`). Every server response — even

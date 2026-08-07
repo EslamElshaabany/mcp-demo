@@ -7,22 +7,25 @@ newline-delimited [JSON-RPC 2.0](https://www.jsonrpc.org/) over the process's st
 - **stdout** — server → client messages (responses, notifications, requests)
 - **stderr** — free for human-facing logs (never stdout, it would corrupt the protocol)
 
-```mermaid
-flowchart LR
-    subgraph Client["Client process"]
-        C[Client SDK<br/><i>StdioClientTransport</i>]
-    end
-    subgraph Server["Server process (spawned child)"]
-        T[StdioServerTransport]
-        M[MCP server]
-    end
-
-    C -->|"stdin<br/>JSON-RPC + LF"| T
-    T --> M
-    M --> T
-    T -->|"stdout<br/>JSON-RPC + LF"| C
-    M -.->|"stderr<br/>human logs only"| C
 ```
+   ┌────────────────────────┐                ┌────────────────────────────────┐
+   │                        │    stdin        │                                │
+   │                        │  ────────────▶  │  StdioServerTransport          │
+   │                        │  (JSON-RPC +    │           │                    │
+   │     Client process     │   "\n")         │           ▼                    │
+   │     (parent)           │  ◀────────────  │       MCP server               │
+   │                        │  stdout         │           │                    │
+   │                        │  (JSON-RPC +    │           ▼                    │
+   │                        │   "\n")         │       stderr                   │
+   │                        │  ◀─ ─ ─ ─ ─ ─   │       (logs only,              │
+   │                        │  stderr         │        not protocol)           │
+   └────────────────────────┘                 └────────────────────────────────┘
+                │                                          │
+                └───── client owns & spawns the server ───┘
+```
+
+Solid arrows = the JSON-RPC protocol wire. Dashed arrow = stderr, which is free
+for human logs and must NOT carry protocol messages.
 
 ## Why MCP uses it
 

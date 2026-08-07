@@ -5,20 +5,15 @@ capability family, and how the three transports share a single server factory.
 
 ## Big picture
 
-```mermaid
-flowchart TD
-    Factory["createMcpServer()<br/><b>src/server/index.ts</b>"]
-    Tools["registerTools<br/><i>src/server/tools.ts</i>"]
-    Resources["registerResources<br/><i>src/server/resources.ts</i>"]
-    Prompts["registerPrompts<br/><i>src/server/prompts.ts</i>"]
-    Bonus["registerBonus<br/><i>src/server/bonus.ts</i>"]
-    Subs["registerSubscriptions<br/><i>src/server/subscriptions.ts</i>"]
-
-    Factory --> Tools
-    Factory --> Resources
-    Factory --> Prompts
-    Factory --> Bonus
-    Factory --> Subs
+```
+                                 createMcpServer()
+                                (src/server/index.ts)
+                                          │
+   ┌──────────────┬──────────────┬──────────┼──────────┬──────────────┐
+   │              │              │          │          │              │
+   ▼              ▼              ▼          ▼          ▼              ▼
+registerTools  registerResources  registerPrompts  registerBonus  registerSubscriptions
+(tools.ts)     (resources.ts)    (prompts.ts)     (bonus.ts)     (subscriptions.ts)
 ```
 
 `createMcpServer()` is the single entry point for assembling a fully-featured
@@ -29,16 +24,15 @@ module and one line in `src/server/index.ts` — no other file needs to change.
 The same factory is used by **all three transports** (everything under
 `src/transports/`):
 
-```mermaid
-flowchart LR
-    Http["<b>Streamable HTTP</b><br/>POST/GET/DELETE /mcp<br/><i>src/transports/http.ts</i>"]
-    Sse["<b>legacy HTTP+SSE</b><br/>GET /sse + POST /messages<br/><i>src/transports/http.ts</i><br/>+ <i>src/transports/sse.ts</i>"]
-    Stdio["<b>stdio</b><br/>stdin/stdout<br/><i>src/transports/stdio.ts</i>"]
-    Factory["createMcpServer()"]
-
-    Http --> Factory
-    Sse --> Factory
-    Stdio --> Factory
+```
+       Streamable HTTP              legacy HTTP+SSE                  stdio
+   POST/GET/DELETE /mcp         GET /sse + POST /messages         stdin/stdout
+  (src/transports/http.ts)    (src/transports/http.ts + sse.ts)  (src/transports/stdio.ts)
+              │                            │                           │
+              └─────────────┬──────────────┴────────────┬──────────────┘
+                            ▼                            ▼
+                                  createMcpServer()
+                                  (src/server/index.ts)
 ```
 
 So transports are purely a wire-layer concern; the capability surface is
@@ -49,36 +43,32 @@ identical across them.
 The server is **stateful**: each `initialize` gets its own `McpServer` +
 `StreamableHTTPTransport`, keyed by the `Mcp-Session-Id` header.
 
-```mermaid
-sequenceDiagram
-    actor C as Client
-    participant H as src/transports/http.ts
-    participant M as sessions Map
+```
+   Client                                                       src/transports/http.ts
+   ──────                                                       ────────────────────────
 
-    Note over H,M: One McpServer + StreamableHTTPTransport per session,<br/>keyed by Mcp-Session-Id
+   POST /mcp (no Mcp-Session-Id)                                       ──▶
+                                                                        createMcpServer()
+                                                                     + new StreamableHTTPTransport(
+                                                                         sessionIdGenerator,
+                                                                         eventStore: MemoryEventStore,
+                                                                         onsessioninitialized
+                                                                           → sessions.set(id, …))
+                                                                        server.connect(transport)
+                                                                        transport.handleRequest(c) ──▶ client
+◀── 200 OK  +  Mcp-Session-Id: <id>
 
-    C->>H: POST /mcp (no Mcp-Session-Id)
-    activate H
-    H->>H: createMcpServer() + new StreamableHTTPTransport<br/>(sessionIdGenerator, MemoryEventStore, onsessioninitialized)
-    H->>H: server.connect(transport)
-    H->>M: sessions.set(id, {transport, dispose})
-    H-->>C: 200 OK + Mcp-Session-Id header
-    deactivate H
+   POST /mcp (Mcp-Session-Id: <id>)                                    ──▶
+                                                                        sessions.get(id)
+                                                                          → {transport, dispose}
+                                                                        transport.handleRequest(c) ──▶ client
+◀── (response)
 
-    C->>H: POST /mcp (Mcp-Session-Id)
-    activate H
-    H->>M: sessions.get(id)
-    M-->>H: {transport, dispose}
-    H-->>C: transport.handleRequest(c)
-    deactivate H
-
-    C->>H: DELETE /mcp (Mcp-Session-Id)
-    activate H
-    H-->>C: transport.handleRequest(c)
-    Note over H: transport.onclose fires
-    H->>M: sessions.delete(id)
-    H->>H: dispose()
-    deactivate H
+   DELETE /mcp (Mcp-Session-Id: <id>)                                  ──▶
+                                                                        transport.handleRequest(c)
+                                                                        (transport.onclose fires)
+                                                                          sessions.delete(id)
+                                                                          dispose()
 ```
 
 Why per-session: subscriptions, log-level state, and the live-stats ticker all
@@ -106,17 +96,20 @@ no leaked timers.
 
 ## Client layout
 
-```mermaid
-flowchart LR
-    Demo["<b>client/demo.ts</b><br/>orchestrator<br/><i>pick transport → connect → run → teardown</i>"]
-    Walk["<b>client/walkthrough.ts</b><br/>runWalkthrough()<br/><i>one step per MCP capability</i>"]
-    Handlers["<b>client/handlers.ts</b><br/>createDemoClient()<br/><i>fake sampling/elicitation/roots</i>"]
-    Helpers["<b>client/helpers.ts</b><br/>step / show / toolText / resourceText"]
-
-    Demo --> Walk
-    Demo --> Handlers
-    Demo --> Helpers
-    Walk --> Helpers
+```
+                                 client/demo.ts  (orchestrator)
+                                 ── pick transport → connect → run → teardown ──
+                                            │
+              ┌─────────────────────────────┼─────────────────────────────┐
+              │                             │                             │
+              ▼                             ▼                             ▼
+   client/walkthrough.ts             client/handlers.ts             client/helpers.ts
+   runWalkthrough()                  createDemoClient()             step / show /
+   one step per MCP                  fake sampling/elicitation/     toolText /
+   capability                        roots + notification log       resourceText
+              │
+              ▼
+        client/helpers.ts
 ```
 
 `handlers.ts` is where the demo's "no real LLM" trick lives: it registers

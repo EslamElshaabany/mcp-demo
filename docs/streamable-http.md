@@ -6,46 +6,39 @@
 Streamable HTTP collapses the old two-endpoint design into **one endpoint** (conventionally
 `/mcp`) and makes SSE an *optional, per-request* upgrade instead of a permanent connection:
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as Server
-    Note over S: Per-session state:<br/>Mcp-Session-Id + MemoryEventStore
+```
+   Client                                                              Server
+   ──────                                                              ──────
 
-    rect rgb(235, 245, 255)
-    Note over C,S: Initialize — creates a new session
-    C->>S: POST /mcp (no Mcp-Session-Id)
-    S-->>C: 200 OK + Mcp-Session-Id header
-    end
+   ── Initialize (no Mcp-Session-Id) ────────────────────────────────────────────
+   POST /mcp  (JSON-RPC: initialize)                                       ──▶
+                                                                  createMcpServer()
+                                                               + StreamableHTTPTrans
+                                                                  + MemoryEventStore
+◀── 200 OK  +  Mcp-Session-Id: <id>
 
-    rect rgb(245, 255, 245)
-    Note over C,S: Request — server may reply with JSON or upgrade to SSE
-    C->>S: POST /mcp (Mcp-Session-Id) Accept: json, text/event-stream
-    alt Server replies with plain JSON
-        S-->>C: 200 application/json
-    else Server upgrades this response to SSE
-        S-->>C: 200 text/event-stream (frames ... end)
-    end
-    end
+   ── Subsequent requests (Mcp-Session-Id: <id>) ──────────────────────────────
+   POST /mcp  (JSON-RPC: tools/call, resources/read, …)                    ──▶
+       Accept: application/json, text/event-stream
 
-    rect rgb(255, 248, 235)
-    Note over C,S: Optional standalone SSE — server-initiated push
-    C->>S: GET /mcp (Mcp-Session-Id)
-    S-->>C: event: message  data: {...}
-    S-->>C: event: message  data: {...}
-    S-->>C: ...
-    end
+                                       ┌── 200 application/json
+◀──                                       │── OR
+                                       └── 200 text/event-stream (frames … end)
 
-    rect rgb(255, 240, 240)
-    Note over C,S: Teardown
-    C->>S: DELETE /mcp (Mcp-Session-Id)
-    end
+   ── Optional standalone SSE (server-initiated push) ────────────────────────
+   GET /mcp  (Mcp-Session-Id: <id>)                                      ──▶
+   event: message  data: {…}   (resources/updated, logs, sampling, …)
+◀── event: message  data: {…}
+   …
 
-    rect rgb(245, 240, 255)
-    Note over C,S: Reconnect — replay missed events from the event store
-    C->>S: GET or POST /mcp (Last-Event-ID)
-    S-->>C: replay missed events
-    end
+   ── Teardown ──────────────────────────────────────────────────────────────
+   DELETE /mcp  (Mcp-Session-Id: <id>)                                     ──▶
+                                                                              onclose → dispose
+
+   ── Reconnect (resumability) ───────────────────────────────────────────────
+   GET or POST /mcp  (Last-Event-ID: <id>)                                 ──▶
+   event: message  data: {…}   (replayed from the event store)
+◀── event: message  data: {…}
 ```
 
 ## The pieces
