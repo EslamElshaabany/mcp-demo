@@ -43,7 +43,7 @@ CLIENT              HTTP TRANSPORT             SESSION MAP
   |                       |                         |
   |-- POST /mcp --------->|                         |
   |                       |-- create server ------->|
-  |                       |-- set(id, session) ----->|
+  |                       |-- set(id, session) ---->|
   |<-- 200 OK + id -------|                         |
   |                       |                         |
   |-- POST /mcp + id ---->|-- lookup session ------>|
