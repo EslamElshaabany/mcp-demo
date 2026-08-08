@@ -1,8 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import {
-  CreateMessageRequestSchema,
   ElicitRequestSchema,
-  ListRootsRequestSchema,
   LoggingMessageNotificationSchema,
   PromptListChangedNotificationSchema,
   ResourceListChangedNotificationSchema,
@@ -12,8 +10,8 @@ import {
 
 /**
  * Build the demo MCP client with all client-side capabilities wired up so the
- * walkthrough can exercise server requests for sampling, elicitation and roots
- * WITHOUT a real LLM — every server request is answered with a canned fake.
+ * walkthrough can exercise elicitation WITHOUT an external service — the
+ * server request is answered with a canned fake.
  *
  * Also registers notification handlers that simply log the server-initiated
  * notifications (logs, resource updates, *_list_changed) so they show up in
@@ -29,37 +27,10 @@ export function createDemoClient(): Client {
     { name: 'mcp-demo-client', version: '1.0.0' },
     {
       capabilities: {
-        sampling: {},
         elicitation: {},
-        roots: { listChanged: true },
       },
     },
   )
-
-  // sampling/createMessage — pretend to be an LLM.
-  client.setRequestHandler(CreateMessageRequestSchema, async (request) => {
-    const prompt = request.params.messages
-      .map((m) => {
-        const content = m.content as
-          | { type: string; text?: string }
-          | Array<{ type: string; text?: string }>
-        if (Array.isArray(content)) {
-          return content.map((c) => (c.type === 'text' ? c.text : '[non-text]')).join(' ')
-        }
-        return content.type === 'text' ? content.text : '[non-text]'
-      })
-      .join('\n')
-    console.log('   [client] sampling request received. Prompt preview:', prompt.slice(0, 90))
-    return {
-      model: 'fake-demo-model-9000',
-      role: 'assistant' as const,
-      stopReason: 'endTurn' as const,
-      content: {
-        type: 'text' as const,
-        text: 'Fake summary: this text was "summarized" by the demo client — no real LLM was involved.',
-      },
-    }
-  })
 
   // elicitation/create — pretend to be a user filling in a form.
   client.setRequestHandler(ElicitRequestSchema, async (request) => {
@@ -68,12 +39,6 @@ export function createDemoClient(): Client {
       action: 'accept' as const,
       content: { name: 'Demo User', role: 'developer', lovesMcp: true },
     }
-  })
-
-  // roots/list — expose this project as a root.
-  client.setRequestHandler(ListRootsRequestSchema, async () => {
-    console.log('   [client] roots requested')
-    return { roots: [{ uri: `file://${process.cwd()}`, name: 'mcp-demo project' }] }
   })
 
   // Server-initiated notifications — log each kind so they're visible.

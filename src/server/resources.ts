@@ -21,7 +21,7 @@ export function registerResources(server: McpServer): void {
         {
           uri: uri.href,
           mimeType: 'text/plain',
-          text: 'mcp-demo — a Hono + Bun server demonstrating every MCP capability. Nothing here is real.',
+          text: 'mcp-demo — a Hono + Bun server demonstrating current MCP capabilities. Nothing here is real.',
         },
       ],
     }),
@@ -50,7 +50,6 @@ export function registerResources(server: McpServer): void {
                 tools: true,
                 resources: true,
                 prompts: true,
-                sampling: true,
                 elicitation: true,
                 realFunctionality: false,
               },

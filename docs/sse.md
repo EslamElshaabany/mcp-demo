@@ -35,7 +35,7 @@ to its request by JSON-RPC id.
 ## Why MCP used it
 
 When MCP launched, it needed a way to run **remote/shared servers** over plain web tech with
-server→client push (for notifications, progress, sampling requests, …). SSE was the pragmatic
+server→client push (for notifications, progress, and server requests). SSE was the pragmatic
 choice: simple HTTP, works through most proxies, natively supported by browsers.
 
 ## Why it was replaced

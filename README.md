@@ -1,6 +1,6 @@
 # mcp-demo
 
-A demo [Model Context Protocol](https://modelcontextprotocol.io) server built with **TypeScript + Hono + Bun**, showcasing every MCP capability with fake logic — nothing here does anything real.
+A demo [Model Context Protocol](https://modelcontextprotocol.io) server built with **TypeScript + Hono + Bun**, showcasing current MCP capabilities with fake logic — nothing here does anything real.
 
 > See [docs/architecture.md](docs/architecture.md) for the session model and module split. Run `bun run typecheck` to type-check the project.
 
@@ -12,7 +12,7 @@ bun install
 # terminal 1 — the server (http://localhost:3000, MCP endpoints at /mcp and /sse)
 bun run dev
 
-# terminal 2 — scripted walkthrough of every capability (no LLM needed),
+# terminal 2 — scripted walkthrough of the capabilities (no LLM needed),
 # pick a transport:
 bun run client          # Streamable HTTP (current standard)
 bun run client:sse      # legacy HTTP+SSE (deprecated, kept for education)
@@ -43,8 +43,6 @@ All three MCP transports are implemented — the same server capabilities are ex
 | **Progress** | `long-task` streams `notifications/progress` when the client passes a `progressToken` (client uses the `onprogress` option) |
 | **Cancellation** | `long-task` honors the request `AbortSignal` (`notifications/cancelled`) |
 | **Elicitation** | `ask-user` calls `elicitation/create` to request structured user input via the client |
-| **Sampling** | `ai-summarize` calls `sampling/createMessage` to use the *client's* LLM |
-| **Roots** | `explore-roots` calls `roots/list` to read client-exposed filesystem roots |
 | **Resources (static)** | `demo://about`, `demo://config` |
 | **Resource templates** | `demo://greeting/{name}`, `demo://users/{id}` (with `list` + `complete` callbacks) |
 | **Subscriptions** | `demo://live/stats` mutates every 3s; subscribers get `notifications/resources/updated` |
@@ -61,7 +59,7 @@ All three MCP transports are implemented — the same server capabilities are ex
 src/
   server/           the MCP server itself — one module per capability family
     index.ts        createMcpServer(): wires the capability modules together
-    tools.ts        echo, roll-dice, long-task, ask-user, ai-summarize, explore-roots, emit-logs
+    tools.ts        echo, roll-dice, long-task, ask-user, emit-logs
     resources.ts    static + templated + live subscribable resources
     prompts.ts      code-review, commit-message (completable args)
     bonus.ts        bonus tool/resource/prompt + toggle-bonus (demonstrates list_changed)
@@ -75,7 +73,7 @@ src/
 client/
   demo.ts           thin orchestrator: pick transport → connect → run → teardown
   walkthrough.ts    runWalkthrough(): one step per MCP capability
-  handlers.ts       createDemoClient(): fake sampling/elicitation/roots + notification logging
+  handlers.ts       createDemoClient(): fake elicitation + notification logging
   helpers.ts        step/show/toolText/resourceText formatters
 docs/
   architecture.md   session model, module split, how to add a capability
@@ -90,4 +88,4 @@ See [docs/architecture.md](docs/architecture.md) for the full session model and 
 - `resources/subscribe` is **not** handled by the SDK — the server tracks subscribed URIs itself (`src/server/subscriptions.ts`).
 - Log-level filtering only applies when `sendLoggingMessage(params, sessionId)` is given the session id.
 - Don't override the client's `ProgressNotificationSchema` handler if you want the per-request `onprogress` callback — the SDK's internal handler is what routes to it.
-- The demo client fakes `sampling`/`elicitation`/`roots` responses, so the full walkthrough runs without an LLM. In the Inspector, sampling needs a real model API key; elicitation shows a form dialog.
+- The demo client fakes the `elicitation` response, so the full walkthrough runs without external services. In the Inspector, elicitation shows a form dialog.

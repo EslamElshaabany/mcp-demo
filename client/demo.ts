@@ -1,7 +1,7 @@
 /**
  * Demo MCP client — connects to the demo server and walks through every
- * capability. No real LLM involved: sampling/elicitation/roots are answered
- * with fakes (see `handlers.ts`).
+ * capability. Elicitation is answered with a fake response (see
+ * `handlers.ts`), so the walkthrough needs no external service.
  *
  * Usage (pick a transport):
  *   bun run client          Streamable HTTP  (server must be running: bun run dev)
@@ -62,4 +62,4 @@ step('Teardown + close')
 // Session teardown via HTTP DELETE only exists on Streamable HTTP.
 if (transport instanceof StreamableHTTPClientTransport) await transport.terminateSession()
 await client.close()
-console.log('\nDone — every MCP capability demonstrated.')
+console.log('\nDone — all current demo capabilities demonstrated.')

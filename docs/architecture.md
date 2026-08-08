@@ -71,7 +71,7 @@ no leaked timers.
 
 | MCP capability | Module | Notes |
 | --- | --- | --- |
-| Tools, progress, cancellation, sampling, elicitation, roots, logging | `src/server/tools.ts` | `registerTools` |
+| Tools, progress, cancellation, elicitation, logging | `src/server/tools.ts` | `registerTools` |
 | Resources (static + templated + live) | `src/server/resources.ts` | `registerResources`; completion via `ResourceTemplate` callbacks |
 | Prompts + argument completion | `src/server/prompts.ts` | `registerPrompts`; uses `completable()` |
 | list_changed toggle | `src/server/bonus.ts` | bonus tool/resource/prompt + `toggle-bonus` |
@@ -92,10 +92,8 @@ client/demo.ts  (orchestrator)
 +-- client/helpers.ts      formatting helpers
 ```
 
-`handlers.ts` is where the demo's "no real LLM" trick lives: it registers
-client-side handlers for `sampling/createMessage`, `elicitation/create` and
-`roots/list` that respond with canned data, so the walkthrough runs without
-external services.
+`handlers.ts` registers the demo client's `elicitation/create` handler with a
+canned response, so the walkthrough runs without external services.
 
 ## Adding a new capability
 

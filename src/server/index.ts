@@ -24,8 +24,8 @@ export function createMcpServer(): DemoServer {
     {
       instructions:
         'Demo MCP server showcasing every protocol capability: tools, resources (static, templated, ' +
-        'subscribable), prompts, argument completion, logging, progress, cancellation, sampling, ' +
-        'elicitation and roots. Nothing here does anything real.',
+        'subscribable), prompts, argument completion, logging, progress, cancellation and elicitation. ' +
+        'Nothing here does anything real.',
       capabilities: {
         logging: {},
         completions: {},

@@ -4,8 +4,8 @@ import { sleep } from '../src/utils.ts'
 import { resourceText, show, step, toolText } from './helpers.ts'
 
 /**
- * Walks the connected client through every capability the demo server exposes:
- * ping, tools (with progress/cancellation/elicitation/sampling/roots), logging,
+ * Walks the connected client through the current capabilities the demo server exposes:
+ * ping, tools (with progress, cancellation and elicitation), logging,
  * resources (static + templated + subscribe), prompts, completion, and the
  * list_changed toggle. Prints everything it does.
  *
@@ -50,21 +50,6 @@ export async function runWalkthrough(client: Client): Promise<void> {
 
   step('tools/call ask-user (elicitation)')
   console.log(toolText(await client.callTool({ name: 'ask-user', arguments: {} })))
-
-  step('tools/call ai-summarize (sampling)')
-  console.log(
-    toolText(
-      await client.callTool({
-        name: 'ai-summarize',
-        arguments: {
-          text: 'MCP is an open protocol that standardizes how applications provide context to LLMs. It lets servers expose tools, resources and prompts to clients in a uniform way.',
-        },
-      }),
-    ),
-  )
-
-  step('tools/call explore-roots (roots/list)')
-  console.log(toolText(await client.callTool({ name: 'explore-roots' })))
 
   step('logging: emit-logs at all levels')
   await client.callTool({ name: 'emit-logs' })

@@ -13,7 +13,7 @@ app.get('/', (c) =>
       `MCP endpoint (Streamable HTTP):  POST/GET/DELETE http://localhost:${PORT}/mcp\n` +
       `MCP endpoint (legacy HTTP+SSE):  GET http://localhost:${PORT}/sse\n` +
       `Health check:                    GET http://localhost:${PORT}/health\n\n` +
-      'Try: bun run client   (walks through every capability)\n' +
+      'Try: bun run client   (walks through the current capabilities)\n' +
       ' or: bun run inspect  (MCP Inspector UI)\n',
   ),
 )
