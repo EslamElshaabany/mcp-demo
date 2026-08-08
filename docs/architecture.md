@@ -43,12 +43,12 @@ sequenceDiagram
     participant H as HTTP transport
     participant M as Sessions map
 
-    C->>H: POST /mcp<br/>initialize
+    C->>H: POST /mcp initialize
     H->>H: Create server + transport
     H->>M: set(id, session)
     H-->>C: 200 + session id
 
-    C->>H: POST /mcp<br/>with session id
+    C->>H: POST /mcp with session id
     H->>M: get(id)
     M-->>H: session
     H-->>C: MCP response
