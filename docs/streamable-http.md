@@ -13,10 +13,10 @@ sequenceDiagram
 
     Note over S: Per-session transport + event store
 
-    C->>S: POST /mcp?<br/>initialize
+    C->>S: POST /mcp initialize
     S-->>C: 200 + session id
 
-    C->>S: POST /mcp?<br/>Mcp-Session-Id
+    C->>S: POST /mcp Mcp-Session-Id
     alt JSON response
         S-->>C: 200 JSON
     else SSE response
@@ -29,7 +29,7 @@ sequenceDiagram
     C->>S: DELETE /mcp
     S-->>C: Session closed
 
-    Note over C,S: Reconnect with Last-Event-ID \n<br/>replays missed events
+    Note over C,S: Reconnect with Last-Event-ID replays missed events
 ```
 
 ## The pieces
