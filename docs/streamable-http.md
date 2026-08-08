@@ -6,26 +6,30 @@
 Streamable HTTP collapses the old two-endpoint design into **one endpoint** (conventionally
 `/mcp`) and makes SSE an *optional, per-request* upgrade instead of a permanent connection:
 
-```
-CLIENT                         SERVER
-------                         ------
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
 
-POST /mcp -------------------> createMcpServer()
-initialize                    create transport + event store
-200 OK + Mcp-Session-Id <----- session id
+    Note over S: Per-session transport + event store
 
-POST /mcp -------------------> handle request
-Mcp-Session-Id: <id>          return JSON or an SSE response
-response <--------------------
+    C->>S: POST /mcp<br/>initialize
+    S-->>C: 200 + session id
 
-GET /mcp --------------------> optional standalone SSE stream
-event: message <-------------- server-initiated notification
-event: message <-------------- resources/updated, logs, etc.
+    C->>S: POST /mcp<br/>Mcp-Session-Id
+    alt JSON response
+        S-->>C: 200 JSON
+    else SSE response
+        S-->>C: 200 SSE stream
+    end
 
-DELETE /mcp -----------------> close session and dispose resources
+    C->>S: GET /mcp
+    S-->>C: SSE notifications
 
-GET /mcp --------------------> Last-Event-ID: <id>
-missed events <--------------- replay from the event store
+    C->>S: DELETE /mcp
+    S-->>C: Session closed
+
+    Note over C,S: Reconnect with Last-Event-ID<br/>replays missed events
 ```
 
 ## The pieces

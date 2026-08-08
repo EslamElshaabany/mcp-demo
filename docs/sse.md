@@ -11,19 +11,21 @@ It uses **two HTTP endpoints** per server:
    stream (`text/event-stream`).
 2. **`POST /messages`** — the client sends JSON-RPC messages as ordinary HTTP POSTs.
 
-```
-CLIENT                         SERVER
-------                         ------
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
 
-GET /sse --------------------> open long-lived SSE stream
-endpoint <-------------------- /messages?sessionId=X
+    C->>S: GET /sse
+    S-->>C: endpoint URL
 
-POST /messages?sessionId=X ---> accept JSON-RPC request
-202 Accepted <---------------- empty HTTP response
-event: message <-------------- actual response on the SSE stream
-event: message <-------------- notifications and server requests
+    loop Session is open
+        C->>S: POST /messages
+        S-->>C: 202 Accepted
+        S-->>C: SSE message
+    end
 
-Client disconnects ------------> close stream and dispose session
+    C--x S: Disconnect
 ```
 
 Key quirk: **POST responses carry no data** (just `202 Accepted`). Every server response — even

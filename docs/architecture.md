@@ -37,20 +37,25 @@ identical across them.
 The server is **stateful**: each `initialize` gets its own `McpServer` +
 `StreamableHTTPTransport`, keyed by the `Mcp-Session-Id` header.
 
-```
-CLIENT              HTTP TRANSPORT             SESSION MAP
-------              ---------------            -----------
-  |                       |                         |
-  |-- POST /mcp --------->|                         |
-  |                       |-- create server ------->|
-  |                       |-- set(id, session) ----->|
-  |<-- 200 OK + id -------|                         |
-  |                       |                         |
-  |-- POST /mcp + id ---->|-- lookup session ------>|
-  |<-- response ----------|                         |
-  |                       |                         |
-  |-- DELETE /mcp + id -->|-- close + dispose       |
-  |                       |-- delete session ------>|
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant H as HTTP transport
+    participant M as Sessions map
+
+    C->>H: POST /mcp<br/>initialize
+    H->>H: Create server + transport
+    H->>M: set(id, session)
+    H-->>C: 200 + session id
+
+    C->>H: POST /mcp<br/>with session id
+    H->>M: get(id)
+    M-->>H: session
+    H-->>C: MCP response
+
+    C->>H: DELETE /mcp
+    H->>M: delete(id)
+    H->>H: dispose()
 ```
 
 Why per-session: subscriptions, log-level state, and the live-stats ticker all
