@@ -2,6 +2,8 @@
 
 A demo [Model Context Protocol](https://modelcontextprotocol.io) server built with **TypeScript + Hono + Bun**, showcasing current MCP capabilities with fake logic — nothing here does anything real.
 
+> New to MCP? Start with [docs/concepts.md](docs/concepts.md) for a short intro to what MCP provides and how to choose between **Tools**, **Resources**, and **Prompts**.
+>
 > See [docs/architecture.md](docs/architecture.md) for the session model and module split. Run `bun run typecheck` to type-check the project.
 
 ## Run it
@@ -77,6 +79,7 @@ client/
   helpers.ts        step/show/toolText/resourceText formatters
 docs/
   architecture.md   session model, module split, how to add a capability
+  concepts.md       MCP overview and how to choose between Tools, Resources, and Prompts
   streamable-http.md / sse.md / stdio.md   — how each transport works and why MCP uses it
 ```
 

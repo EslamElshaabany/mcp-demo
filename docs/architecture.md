@@ -3,6 +3,8 @@
 How `mcp-demo` is put together: the session model, the module split per MCP
 capability family, and how the three transports share a single server factory.
 
+For a short protocol overview, see [concepts.md](./concepts.md).
+
 ## Big picture
 
 ```
